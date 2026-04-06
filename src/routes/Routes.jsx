@@ -4,6 +4,12 @@ import Register from "../pages/Register";
 import Login from "../pages/Login";
 import AllDonationReq from "../pages/Dashboard/Donor/AllDonationReq";
 import DonationDetails from "../pages/Dashboard/Donor/DonationDetails";
+import PrivateRoute from "./PrivateRoute";
+import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardHome from "../pages/Dashboard/Common/DashboardHome";
+import Profile from "../pages/Dashboard/Common/Profile";
+import AllUsers from "../pages/Dashboard/Admin/AllUsers";
+import AllDonationRequest from "../pages/Dashboard/Admin/AllDonationRequest";
 
 export const router = createBrowserRouter([
     {
@@ -25,5 +31,29 @@ export const router = createBrowserRouter([
     {
         path: 'donation-request/:id',
         element: <DonationDetails></DonationDetails>
+    },
+    {
+        path: '/dashboard',
+        element: <PrivateRoute>
+            <DashboardLayout></DashboardLayout>
+        </PrivateRoute>,
+        children: [
+            {
+                index: true,
+                element: <DashboardHome></DashboardHome>
+            },
+            {
+                path: 'profile',
+                element: <Profile></Profile>
+            },
+            {
+                path: 'all-users',
+                element: <AllUsers></AllUsers>
+            },
+            {
+                path: 'admin-all-donation-requests',
+                element: <AllDonationRequest></AllDonationRequest>
+            }
+        ]
     }
 ])
