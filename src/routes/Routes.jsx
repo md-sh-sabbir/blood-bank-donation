@@ -12,6 +12,12 @@ import AllUsers from "../pages/Dashboard/Admin/AllUsers";
 import AllDonationRequest from "../pages/Dashboard/Admin/AllDonationRequest";
 import AddVolunteer from "../pages/Dashboard/Admin/AddVolunteer";
 import VolunteerAllDonationReq from "../pages/Dashboard/Volunteer/VolunteerAllDonationReq";
+import AddRequest from "../pages/Dashboard/Donor/AddRequest";
+import MyDonationReq from "../pages/Dashboard/Donor/MyDonationReq";
+import Donate from "../pages/Donate/Donate";
+import PaymentSuccess from "../pages/PaymentSuccess/PaymentSuccess";
+import PaymentCancelled from "../pages/PaymentCancelled/PaymentCancelled";
+import SearchRequest from "../pages/SearchRequest/SearchRequest";
 
 export const router = createBrowserRouter([
     {
@@ -35,6 +41,24 @@ export const router = createBrowserRouter([
         element: <DonationDetails></DonationDetails>
     },
     {
+        path: 'search',
+        element: <SearchRequest></SearchRequest>
+    },
+    {
+        path: 'donate',
+        element: <PrivateRoute>
+            <Donate></Donate>
+        </PrivateRoute>
+    },
+    {
+        path: 'payment-success',
+        element: <PaymentSuccess></PaymentSuccess>
+    },
+    {
+        path: 'payment-cancelled',
+        element: <PaymentCancelled></PaymentCancelled>
+    },
+    {
         path: '/dashboard',
         element: <PrivateRoute>
             <DashboardLayout></DashboardLayout>
@@ -49,11 +73,16 @@ export const router = createBrowserRouter([
                 element: <Profile></Profile>
             },
             {
-                
+                path: 'add-request',
+                element: <AddRequest></AddRequest>
             },
             {
                 path: 'all-users',
                 element: <AllUsers></AllUsers>
+            },
+            {
+                path: 'my-donation-requests',
+                element: <MyDonationReq></MyDonationReq>
             },
             {
                 path: 'admin-all-donation-requests',

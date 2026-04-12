@@ -1,14 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { use, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { AuthContext } from "../../../providers/AuthContext";
 import useAxios from "../../../hooks/useAxios";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const Profile = () => {
   const { user } = use(AuthContext);
   const axiosSecure = useAxios();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+
+  const [upazilas, setUpazilas] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedUpazila, setSelectedUpazila] = useState("");
+  const [selectedBlood, setSelectedBlood] = useState("");
+
+  useEffect(() => {
+    axios.get("/upazilas.json").then((res) => setUpazilas(res.data.upazilas));
+    axios.get("/districts.json").then((res) => setDistricts(res.data.districts));
+  }, []);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.email],
@@ -19,26 +31,66 @@ const Profile = () => {
     },
   });
 
+  // ✅ Sync state when profile loads or updates after save
+  useEffect(() => {
+    if (profile) {
+      setSelectedDistrict(profile.district || "");
+      setSelectedUpazila(profile.upazila || "");
+      setSelectedBlood(profile.blood || "");
+    }
+  }, [profile?.district, profile?.upazila, profile?.blood]);
+
+  // ✅ Find district object to match upazila by district_id
+  const selectedDistrictObj = districts.find(
+    (d) => d.name === selectedDistrict
+  );
+
+  // ✅ Filter upazilas by selected district (handles both JSON formats)
+  const filteredUpazilas = upazilas.filter((u) => {
+    if (!selectedDistrictObj) return false;
+    return (
+      u.district_id === selectedDistrictObj.id ||
+      u.district_name === selectedDistrict
+    );
+  });
+
+  const handleDistrictChange = (e) => {
+    setSelectedDistrict(e.target.value);
+    setSelectedUpazila(""); // reset upazila when district changes
+  };
+
   const updateProfile = useMutation({
     mutationFn: (updatedData) =>
+      // ✅ profile._id is the MongoDB ObjectId
       axiosSecure.put(`/user/${profile._id}`, updatedData),
-      onSuccess: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries(["profile", user?.email]);
       setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    },
+    onError: (error) => {
+      console.error("Update error:", error?.response?.data);
+      toast.error(
+        error?.response?.data?.message || "Failed to update profile."
+      );
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const form = e.target;
     const updatedData = {
-      blood: form.blood.value,
-      district: form.district.value,
-      upazila: form.upazila.value,
+      blood: selectedBlood,
+      district: selectedDistrict,
+      upazila: selectedUpazila,
     };
-    toast.success('Profile updated successfully!')
-
     updateProfile.mutate(updatedData);
+  };
+
+  const handleCancel = () => {
+    setSelectedDistrict(profile?.district || "");
+    setSelectedUpazila(profile?.upazila || "");
+    setSelectedBlood(profile?.blood || "");
+    setIsEditing(false);
   };
 
   if (isLoading) return <p className="text-center mt-20">Loading...</p>;
@@ -46,18 +98,15 @@ const Profile = () => {
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 md:p-12">
-
         <div className="flex flex-col items-center mb-8">
-          <div className="relative">
-            <img
-              src={profile?.photo}
-              className="w-32 h-32 rounded-lg object-cover shadow-lg"
-              alt="User Avatar"
-            />
-          </div>
-          <h2 className="text-4xl font-bold mt-6 text-gray-800">User Profile</h2>
-
-          {/* Edit Button - Only shown when not editing */}
+          <img
+            src={profile?.photo}
+            className="w-32 h-32 rounded-lg object-cover shadow-lg"
+            alt="User Avatar"
+          />
+          <h2 className="text-4xl font-bold mt-6 text-gray-800">
+            User Profile
+          </h2>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
@@ -68,14 +117,12 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Email (readonly always) */}
+
+            {/* Email */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
               <input
                 type="email"
                 readOnly
@@ -84,11 +131,9 @@ const Profile = () => {
               />
             </div>
 
-            {/* Name (readonly always) */}
+            {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Name
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
               <input
                 type="text"
                 readOnly
@@ -97,12 +142,10 @@ const Profile = () => {
               />
             </div>
 
-            {/* Upload Avatar - Only shown when editing */}
+            {/* Upload Avatar - edit mode only */}
             {isEditing && (
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Upload Avatar
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Avatar</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -111,71 +154,66 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Blood Group */}
+            {/* Blood Group — fully controlled */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Blood Group*
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Blood Group*</label>
               <select
-                name="blood"
-                defaultValue={profile?.blood}
+                value={selectedBlood}
+                onChange={(e) => setSelectedBlood(e.target.value)}
                 disabled={!isEditing}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${!isEditing ? "bg-gray-50 cursor-not-allowed text-gray-600" : "bg-white"
-                  }`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+                  !isEditing ? "bg-gray-50 cursor-not-allowed text-gray-600" : "bg-white"
+                }`}
               >
                 <option value="">Select Blood Group</option>
-                <option>A+</option>
-                <option>A-</option>
-                <option>B+</option>
-                <option>B-</option>
-                <option>AB+</option>
-                <option>AB-</option>
-                <option>O+</option>
-                <option>O-</option>
+                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
               </select>
             </div>
 
-            {/* District */}
+            {/* District — fully controlled */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                District
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">District</label>
               <select
-                name="district"
-                defaultValue={profile?.district}
+                value={selectedDistrict}
+                onChange={handleDistrictChange}
                 disabled={!isEditing}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${!isEditing ? "bg-gray-50 cursor-not-allowed text-gray-600" : "bg-white"
-                  }`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+                  !isEditing ? "bg-gray-50 cursor-not-allowed text-gray-600" : "bg-white"
+                }`}
               >
                 <option value="">Select District</option>
-                <option>Dhaka</option>
-                <option>Brahmanbaria</option>
-                <option>Chattogram</option>
-                <option>Rajshahi</option>
+                {districts.map((d) => (
+                  <option value={d.name} key={d.id}>{d.name}</option>
+                ))}
               </select>
             </div>
 
-            {/* Upazila */}
+            {/* Upazila — filtered by selected district */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Upazila
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Upazila</label>
               <select
-                name="upazila"
-                defaultValue={profile?.upazila}
-                disabled={!isEditing}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${!isEditing ? "bg-gray-50 cursor-not-allowed text-gray-600" : "bg-white"
-                  }`}
+                value={selectedUpazila}
+                onChange={(e) => setSelectedUpazila(e.target.value)}
+                disabled={!isEditing || !selectedDistrict}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+                  !isEditing || !selectedDistrict
+                    ? "bg-gray-50 cursor-not-allowed text-gray-600"
+                    : "bg-white"
+                }`}
               >
-                <option value="">Select Upazila</option>
-                <option>Amtali</option>
-                <option>Akhaura</option>
-                <option>Savar</option>
+                <option value="">
+                  {selectedDistrict ? "Select Upazila" : "Select a district first"}
+                </option>
+                {filteredUpazilas.map((u) => (
+                  <option value={u.name} key={u.id}>{u.name}</option>
+                ))}
               </select>
             </div>
           </div>
 
-          {/* Save Button - Only shown when editing */}
+          {/* Save / Cancel */}
           {isEditing && (
             <div className="mt-8">
               <button
@@ -187,7 +225,7 @@ const Profile = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setIsEditing(false)}
+                onClick={handleCancel}
                 className="w-full mt-3 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors duration-200"
               >
                 Cancel
