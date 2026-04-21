@@ -20,7 +20,7 @@ const Banner = () => {
                 <h6 className='text-2xl mt-5'>Your blood is precious to save one's life. Make your effort to greatness.</h6>
                 <div className='mt-8'>
                     <Link to='/register' className='btn bg-green-500 border-0 shadow-none w-50 text-white text-lg mr-5'>Join As Donors</Link>
-                    <Link className='btn bg-[#EA1241] border-0 shadow-none w-50 text-white text-lg'>Search Donors</Link>
+                    <Link to='/search' className='btn bg-[#EA1241] border-0 shadow-none w-50 text-white text-lg'>Search Donors</Link>
                 </div>
             </div>
         </div>

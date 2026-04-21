@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged,
 import { auth } from '../firebase/firebase.config';
 import axios from 'axios';
 import useAxios from '../hooks/useAxios';
+import { jsx } from 'react/jsx-runtime';
 
 
 const googleProvider = new GoogleAuthProvider()
@@ -67,7 +68,7 @@ const AuthProvider = ({ children }) => {
             setLoading(false)
         })
         return () => {
-            unsubscribe()
+            unsubscribe
         }
     }, [])
 

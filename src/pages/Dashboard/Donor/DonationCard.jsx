@@ -25,7 +25,7 @@ const DonationCard = ({ request }) => {
             </div>
 
             {/* Date and Time */}
-            <div className="flex gap-6 mb-5">
+            <div className="flex gap-6 mb-3">
                 <div>
                     <span className="font-semibold text-gray-700">Date: </span>
                     <span className="text-gray-600">{request.donationDate}</span>
@@ -34,6 +34,10 @@ const DonationCard = ({ request }) => {
                     <span className="font-semibold text-gray-700">Time: </span>
                     <span className="text-gray-600">{request.donationTime}</span>
                 </div>
+            </div>
+            <div className="mb-5">
+                <span className="font-semibold text-gray-700">Contact No. : </span>
+                <span className="text-gray-600">{request.requesterNumber}</span>
             </div>
 
             {/* View Details Button */}
