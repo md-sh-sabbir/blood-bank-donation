@@ -31,7 +31,7 @@ const Profile = () => {
     },
   });
 
-  // ✅ Sync state when profile loads or updates after save
+  // Sync state when profile loads or updates after save
   useEffect(() => {
     if (profile) {
       setSelectedDistrict(profile.district || "");
@@ -40,12 +40,10 @@ const Profile = () => {
     }
   }, [profile?.district, profile?.upazila, profile?.blood]);
 
-  // ✅ Find district object to match upazila by district_id
-  const selectedDistrictObj = districts.find(
-    (d) => d.name === selectedDistrict
-  );
+  // Find district object to match upazila by district_id
+  const selectedDistrictObj = districts.find((d) => d.name === selectedDistrict);
 
-  // ✅ Filter upazilas by selected district (handles both JSON formats)
+  // Filter upazilas by selected district
   const filteredUpazilas = upazilas.filter((u) => {
     if (!selectedDistrictObj) return false;
     return (
@@ -56,12 +54,28 @@ const Profile = () => {
 
   const handleDistrictChange = (e) => {
     setSelectedDistrict(e.target.value);
-    setSelectedUpazila(""); // reset upazila when district changes
+    setSelectedUpazila("");
   };
+
+  // Calculate donation eligibility from lastDonationDate
+  const getDonationStatus = () => {
+    if (!profile?.lastDonationDate) return null;
+
+    const last = new Date(profile.lastDonationDate);
+    const now = new Date();
+    const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+    const canDonate = diffDays >= 120;
+
+    const nextDate = new Date(last);
+    nextDate.setDate(nextDate.getDate() + 120);
+
+    return { canDonate, nextDate, diffDays };
+  };
+
+  const donationStatus = getDonationStatus();
 
   const updateProfile = useMutation({
     mutationFn: (updatedData) =>
-      // ✅ profile._id is the MongoDB ObjectId
       axiosSecure.put(`/user/${profile._id}`, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries(["profile", user?.email]);
@@ -70,9 +84,7 @@ const Profile = () => {
     },
     onError: (error) => {
       console.error("Update error:", error?.response?.data);
-      toast.error(
-        error?.response?.data?.message || "Failed to update profile."
-      );
+      toast.error(error?.response?.data?.message || "Failed to update profile.");
     },
   });
 
@@ -104,9 +116,7 @@ const Profile = () => {
             className="w-32 h-32 rounded-lg object-cover shadow-lg"
             alt="User Avatar"
           />
-          <h2 className="text-4xl font-bold mt-6 text-gray-800">
-            User Profile
-          </h2>
+          <h2 className="text-4xl font-bold mt-6 text-gray-800">User Profile</h2>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
@@ -154,7 +164,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Blood Group — fully controlled */}
+            {/* Blood Group */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Blood Group*</label>
               <select
@@ -172,7 +182,7 @@ const Profile = () => {
               </select>
             </div>
 
-            {/* District — fully controlled */}
+            {/* District */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">District</label>
               <select
@@ -190,7 +200,7 @@ const Profile = () => {
               </select>
             </div>
 
-            {/* Upazila — filtered by selected district */}
+            {/* Upazila */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Upazila</label>
               <select
@@ -211,6 +221,55 @@ const Profile = () => {
                 ))}
               </select>
             </div>
+
+            {/* ── Last Donation Date (read-only, always visible) ── */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Last Donation Date
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={
+                  profile?.lastDonationDate
+                    ? new Date(profile.lastDonationDate).toDateString()
+                    : "No donation yet"
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed text-gray-600 focus:outline-none"
+              />
+            </div>
+
+            {/* ── Next Eligible Donation Date ── */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Next Eligible Donation
+              </label>
+              {donationStatus ? (
+                <div
+                  className={`w-full px-4 py-3 border rounded-lg text-sm font-semibold ${
+                    donationStatus.canDonate
+                      ? "bg-green-50 border-green-300 text-green-700"
+                      : "bg-yellow-50 border-yellow-300 text-yellow-700"
+                  }`}
+                >
+                  {donationStatus.canDonate ? (
+                    <span>✅ You are eligible to donate now!</span>
+                  ) : (
+                    <span>
+                      ⏳ {donationStatus.nextDate.toDateString()}
+                      <span className="block text-xs font-normal mt-0.5">
+                        ({120 - donationStatus.diffDays} days remaining)
+                      </span>
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full px-4 py-3 border border-green-300 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
+                  ✅ You are eligible to donate now!
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Save / Cancel */}
