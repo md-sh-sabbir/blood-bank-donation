@@ -19,19 +19,6 @@ const AddRequest = () => {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedUpazila, setSelectedUpazila] = useState("");
 
-  // useEffect(() => {
-  //     axios.get('/upazilas.json')
-  //         .then(res => {
-  //             // console.log(res.data);
-  //             setUpazilas(res.data.upazilas)
-  //         })
-
-  //     axios.get('/districts.json')
-  //         .then(res => {
-  //             // console.log(res.data);
-  //             setDistricts(res.data.districts)
-  //         })
-  // }, [])
 
   useEffect(() => {
     axios.get("/upazilas.json").then((res) => setUpazilas(res.data.upazilas));
